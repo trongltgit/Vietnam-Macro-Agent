@@ -20,8 +20,7 @@ class PDFExtractor:
                 page = reader.pages[index]
                 text = page.extract_text()
                 if text:
-                    text_content.append(f"--- Trang {index + 1} ---
-{text}")
+                    text_content.append(f"--- Trang {index + 1} ---\n{text}")
             logger.info(f"Đã trích xuất thành công {num_pages} trang từ {path.name}")
             return "\n".join(text_content)
         except Exception as e:
