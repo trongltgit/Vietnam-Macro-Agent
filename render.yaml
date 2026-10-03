@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: vietnam-macro-agent
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: PRIMARY_LLM_MODEL
+        value: llama-3.3-70b-versatile
+      - key: FALLBACK_LLM_MODELS
+        value: openai/gpt-oss-120b,llama-3.1-8b-instant
+      - key: LLM_TEMPERATURE
+        value: "0.1"
+      - key: AGENT_MAX_ITERATIONS
+        value: "8"
+    disk:
+      name: macro-data
+      mountPath: /app/data
+      sizeGB: 1
