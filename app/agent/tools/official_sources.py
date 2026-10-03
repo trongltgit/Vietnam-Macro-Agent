@@ -65,3 +65,6 @@ class OfficialSourcesCollector:
                 logger.error(f"Lỗi khi tải tài liệu từ {url}: {str(e)}")
 
         return downloaded_files
+
+# Alias để khớp với code import OfficialSourceTool ở các module khác
+OfficialSourceTool = OfficialSourcesCollector
