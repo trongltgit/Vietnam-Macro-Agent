@@ -1,12 +1,14 @@
 """
 Vietnam Macro AI Agent - FastAPI application entry point.
-Production-ready API for collecting & analyzing Vietnamese macro reports.
+Production-ready API + Web UI for collecting & analyzing Vietnamese macro reports.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 
 from app.api.v1 import agent, analysis, health, reports
 from app.core.config import get_settings
@@ -14,6 +16,9 @@ from app.core.logging import setup_logging, get_logger
 
 setup_logging()
 logger = get_logger(__name__)
+
+TEMPLATES_DIR = Path(__file__).parent / "templates"
+UI_HTML = TEMPLATES_DIR / "ui.html"
 
 
 @asynccontextmanager
@@ -25,9 +30,7 @@ async def lifespan(app: FastAPI):
         version=settings.app_version,
         env=settings.app_env,
     )
-    # Ensure directories
     settings.ensure_directories()
-    # Warm up LLM provider
     try:
         from app.llm.provider import get_llm_provider
         get_llm_provider()
@@ -55,25 +58,36 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Restrict in production if needed
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # Routers
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(agent.router, prefix="/api/v1")
     app.include_router(reports.router, prefix="/api/v1")
     app.include_router(analysis.router, prefix="/api/v1")
 
-    @app.get("/")
-    async def root():
+    @app.get("/ui", response_class=HTMLResponse)
+    @app.get("/", response_class=HTMLResponse)
+    async def web_ui():
+        """Trang web giao diện lấy báo cáo."""
+        if UI_HTML.exists():
+            return FileResponse(UI_HTML, media_type="text/html; charset=utf-8")
+        return HTMLResponse(
+            "<h1>UI not found</h1><p>File app/templates/ui.html missing.</p>",
+            status_code=404,
+        )
+
+    @app.get("/api")
+    async def api_info():
         return {
             "name": settings.app_name,
             "version": settings.app_version,
             "docs": "/docs",
             "health": "/api/v1/health",
+            "ui": "/",
         }
 
     return app
