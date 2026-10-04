@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vietnam Macro AI Agent</title>
+  <style>
+    :root {
+      --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8;
+      --accent: #38bdf8; --ok: #4ade80; --err: #f87171; --border: #334155;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.55;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+    header { margin-bottom: 20px; }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; }
+    header p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px; margin-bottom: 16px;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.95rem; }
+    textarea, input[type="text"] {
+      width: 100%; background: #0b1220; color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-size: 0.95rem;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+    .hints { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 14px; }
+    .hint {
+      background: #0b1220; border: 1px solid var(--border); border-radius: 999px;
+      padding: 6px 12px; font-size: 0.78rem; color: var(--muted); cursor: pointer;
+    }
+    .hint:hover { border-color: var(--accent); color: var(--accent); }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+    button {
+      background: var(--accent); color: #0f172a; border: none; border-radius: 8px;
+      padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: 0.9rem;
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    #status { font-size: 0.85rem; color: var(--muted); }
+    #status.ok { color: var(--ok); }
+    #status.err { color: var(--err); }
+    #status.loading { color: var(--accent); }
+    .small { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+    .field-row { display: grid; grid-template-columns: 1fr 160px; gap: 12px; }
+    @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+
+    /* Readable report */
+    .report { font-size: 0.95rem; }
+    .report h2 { margin: 0 0 10px; font-size: 1.15rem; color: var(--accent); }
+    .report h3 { margin: 18px 0 8px; font-size: 1rem; color: #cbd5e1; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+    .report p { margin: 0 0 10px; }
+    .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 999px;
+      font-size: 0.75rem; font-weight: 700; margin-right: 6px;
+    }
+    .badge.ok { background: #14532d; color: var(--ok); }
+    .badge.partial { background: #713f12; color: var(--warn); }
+    .badge.failed { background: #7f1d1d; color: var(--err); }
+    .ind-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px; margin: 12px 0;
+    }
+    .ind-card {
+      background: #0b1220; border: 1px solid var(--border); border-radius: 10px; padding: 12px;
+    }
+    .ind-card .label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+    .ind-card .value { font-size: 1.15rem; font-weight: 700; color: var(--ok); }
+    .src-list, .rep-list { list-style: none; padding: 0; margin: 0; }
+    .src-list li, .rep-list li {
+      padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.88rem;
+    }
+    .src-list a, .rep-list a { color: var(--accent); word-break: break-all; }
+    .notes {
+      background: #0b1220; border-left: 3px solid var(--warn);
+      padding: 10px 14px; margin-top: 12px; font-size: 0.88rem; color: #fde68a;
+    }
+    details { margin-top: 16px; }
+    details summary { cursor: pointer; color: var(--muted); font-size: 0.85rem; }
+    pre.raw {
+      background: #0b1220; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; overflow-x: auto; font-size: 0.75rem; white-space: pre-wrap;
+      word-break: break-word; max-height: 320px; overflow-y: auto; margin-top: 8px;
+    }
+    .links { margin-top: 12px; font-size: 0.85rem; color: var(--muted); }
+    .links a { color: var(--accent); }
+    footer { margin-top: 28px; text-align: center; color: var(--muted); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Vietnam Macro AI Agent</h1>
+      <p>Báo cáo vĩ mô NHNN &amp; NSO · BCTC công ty theo mã CK · tóm tắt rõ ràng</p>
+    </header>
+
+    <div class="card">
+      <label for="query">Bạn muốn lấy báo cáo gì? (gõ tự do)</label>
+      <textarea id="query" placeholder="Ví dụ: Lấy báo cáo kinh tế - xã hội NSO và tỷ giá NHNN"></textarea>
+      <div class="hints">
+        <span class="hint" data-q="Lấy báo cáo kinh tế - xã hội mới nhất của NSO">Báo cáo NSO</span>
+        <span class="hint" data-q="Lấy báo cáo thường niên NHNN và tỷ giá trung tâm">Báo cáo NHNN + tỷ giá</span>
+        <span class="hint" data-q="Tìm tỷ giá, tín dụng, lạm phát từ NHNN và NSO">Tỷ giá &amp; tín dụng</span>
+        <span class="hint" data-q="Liệt kê báo cáo kinh tế vĩ mô mới nhất">Liệt kê báo cáo</span>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="ticker">Mã chứng khoán (tuỳ chọn)</label>
+          <input type="text" id="ticker" placeholder="VNM, HPG, FPT, VCB..." maxlength="10" />
+          <div class="small">Điền mã CK → hệ thống lấy BCTC từ CafeF / Vietstock (lọc đúng báo cáo tài chính)</div>
+        </div>
+      </div>
+      <div class="row">
+        <button id="btnRun" type="button">Lấy báo cáo</button>
+        <button id="btnHealth" type="button" class="secondary">Kiểm tra hệ thống</button>
+        <span id="status"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <label>Kết quả</label>
+      <div id="result" class="report">
+        <p style="color:var(--muted)">Chưa có kết quả. Nhập câu hỏi và/hoặc mã CK rồi bấm "Lấy báo cáo".</p>
+      </div>
+      <div class="links">
+        API docs: <a href="/docs" target="_blank">/docs</a>
+        · Health: <a href="/api/v1/health" target="_blank">/api/v1/health</a>
+        · Files: <a href="/api/v1/reports/list" target="_blank">/api/v1/reports/list</a>
+      </div>
+    </div>
+    <footer>Vietnam Macro AI Agent · Groq · FastAPI</footer>
+  </div>
+
+  <script>
+    const queryEl = document.getElementById("query");
+    const tickerEl = document.getElementById("ticker");
+    const resultEl = document.getElementById("result");
+    const statusEl = document.getElementById("status");
+    const btnRun = document.getElementById("btnRun");
+    const btnHealth = document.getElementById("btnHealth");
+
+    document.querySelectorAll(".hint").forEach((el) => {
+      el.addEventListener("click", () => { queryEl.value = el.getAttribute("data-q"); });
+    });
+
+    function setStatus(text, cls) {
+      statusEl.textContent = text;
+      statusEl.className = cls || "";
+    }
+
+    function esc(s) {
+      return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    function formatIndicators(inds) {
+      if (!inds || typeof inds !== "object") return "";
+      const labels = {
+        gdp_growth_pct: "GDP tăng trưởng",
+        gdp_growth_q3_2026_pct: "GDP quý III",
+        gdp_growth_9m_2026_pct: "GDP 9 tháng",
+        cpi_pct: "CPI",
+        credit_growth_pct: "Tín dụng",
+        exports_growth_pct: "Xuất khẩu",
+        imports_growth_pct: "Nhập khẩu",
+        trade_balance_pct: "Cán cân TM",
+        exports: "Xuất khẩu",
+        imports: "Nhập khẩu",
+        trade_balance: "Cán cân TM",
+        exchange_rate_usd_vnd_central: "Tỷ giá USD/VND",
+        exchange_rate: "Tỷ giá",
+        exchange_rate_status: "Tỷ giá (trạng thái)",
+      };
+      let html = '<div class="ind-grid">';
+      for (const [k, v] of Object.entries(inds)) {
+        if (v === null || v === undefined || v === "" || k === "company") continue;
+        if (typeof v === "object") continue;
+        const label = labels[k] || k;
+        const val = typeof v === "number" ? v : String(v);
+        const suffix = (String(k).includes("pct") || String(k).includes("growth")) && !String(val).includes("%") ? "%" : "";
+        html += `<div class="ind-card"><div class="label">${esc(label)}</div><div class="value">${esc(val)}${suffix}</div></div>`;
+      }
+      // company figures
+      if (inds.company && typeof inds.company === "object") {
+        for (const [k, v] of Object.entries(inds.company)) {
+          if (k === "ticker" || k === "name") continue;
+          html += `<div class="ind-card"><div class="label">${esc(k)} (${esc(inds.company.ticker || "")})</div><div class="value">${esc(v)}</div></div>`;
+        }
+      }
+      html += "</div>";
+      return html;
+    }
+
+    function renderReport(data) {
+      const r = data.result || data;
+      if (!r || typeof r !== "object") {
+        return `<pre class="raw">${esc(JSON.stringify(data, null, 2))}</pre>`;
+      }
+      const st = r.status || data.status || "unknown";
+      const badge = st === "success" || st === "ok" ? "ok" : (st === "partial" ? "partial" : "failed");
+      let html = `<span class="badge ${badge}">${esc(st).toUpperCase()}</span>`;
+      if (data.message) html += `<span style="color:var(--muted);font-size:0.85rem">${esc(data.message)}</span>`;
+
+      html += `<h2 style="margin-top:14px">Tóm tắt</h2>`;
+      html += `<p>${esc(r.summary || "Không có tóm tắt")}</p>`;
+
+      if (r.indicators && Object.keys(r.indicators).length) {
+        html += `<h3>Chỉ tiêu chính</h3>`;
+        html += formatIndicators(r.indicators);
+      }
+
+      // Company block from raw_data
+      const company = (r.raw_data && r.raw_data.company) || null;
+      if (company && company.ticker) {
+        html += `<h3>Công ty ${esc(company.ticker)}</h3>`;
+        if (company.company_name) html += `<p><strong>${esc(company.company_name)}</strong></p>`;
+        if (company.key_figures && Object.keys(company.key_figures).length) {
+          html += formatIndicators(company.key_figures);
+        }
+        const reps = (company.reports || []).filter(x => {
+          const t = (x.title || "").toLowerCase();
+          return !t.includes("gọi điện") && !t.includes("bamboo") && !t.includes("chân dung") && !t.includes("đột quỵ");
+        });
+        if (reps.length) {
+          html += `<p style="margin-top:8px;color:var(--muted);font-size:0.85rem">Báo cáo / liên kết liên quan:</p><ul class="rep-list">`;
+          reps.slice(0, 10).forEach(rep => {
+            html += `<li><a href="${esc(rep.url)}" target="_blank" rel="noopener">${esc(rep.title || rep.url)}</a> <span style="color:var(--muted)">(${esc(rep.source || "")})</span></li>`;
+          });
+          html += `</ul>`;
+        } else {
+          html += `<p style="color:var(--warn);font-size:0.88rem">Chưa lọc được file BCTC cụ thể — xem nguồn gốc bên dưới.</p>`;
+        }
+      }
+
+      if (r.sources && r.sources.length) {
+        html += `<h3>Nguồn</h3><ul class="src-list">`;
+        r.sources.filter(Boolean).forEach(s => {
+          if (typeof s === "string" && s.startsWith("http")) {
+            html += `<li><a href="${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a></li>`;
+          } else if (s) {
+            html += `<li>${esc(s)}</li>`;
+          }
+        });
+        html += `</ul>`;
+      }
+
+      if (r.notes) {
+        html += `<div class="notes">${esc(r.notes)}</div>`;
+      }
+
+      html += `<details><summary>Xem JSON đầy đủ</summary><pre class="raw">${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+      return html;
+    }
+
+    btnHealth.addEventListener("click", async () => {
+      setStatus("Đang kiểm tra...", "loading");
+      try {
+        const res = await fetch("/api/v1/health");
+        const data = await res.json();
+        resultEl.innerHTML = `<pre class="raw">${esc(JSON.stringify(data, null, 2))}</pre>`;
+        setStatus(data.status === "ok" ? "Hệ thống OK" : "Có vấn đề", data.status === "ok" ? "ok" : "err");
+      } catch (e) {
+        resultEl.innerHTML = `<p style="color:var(--err)">${esc(e)}</p>`;
+        setStatus("Lỗi kết nối", "err");
+      }
+    });
+
+    btnRun.addEventListener("click", async () => {
+      const query = queryEl.value.trim();
+      const ticker = tickerEl.value.trim().toUpperCase();
+      if (!query && !ticker) {
+        setStatus("Nhập câu hỏi hoặc mã CK trước", "err");
+        return;
+      }
+      const finalQuery = query || ("Lấy báo cáo tài chính công ty " + ticker);
+      btnRun.disabled = true;
+      setStatus("Đang chạy agent (30–90 giây)...", "loading");
+      resultEl.innerHTML = `<p style="color:var(--muted)">Đang thu thập dữ liệu...</p>`;
+      try {
+        const body = { query: finalQuery };
+        if (ticker) body.ticker = ticker;
+        const res = await fetch("/api/v1/agent/run/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        resultEl.innerHTML = renderReport(data);
+        if (res.ok && data.status !== "failed") setStatus("Hoàn thành", "ok");
+        else setStatus("Lỗi hoặc thiếu dữ liệu — xem chi tiết", "err");
+      } catch (e) {
+        resultEl.innerHTML = `<p style="color:var(--err)">${esc(e)}</p>`;
+        setStatus("Lỗi kết nối / timeout", "err");
+      } finally {
+        btnRun.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
